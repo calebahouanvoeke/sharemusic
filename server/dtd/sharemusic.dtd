@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE music [
+
+<!ELEMENT music (network_info, users)>
+
+<!ELEMENT network_info (host_id?, total_users?, last_update?)>
+<!ELEMENT host_id (#PCDATA)>
+<!ELEMENT total_users (#PCDATA)>
+<!ELEMENT last_update (#PCDATA)>
+
+<!ELEMENT users (user+)>
+
+<!ELEMENT user (info_user, track_list)>
+<!ATTLIST user 
+    device_id ID #REQUIRED
+    is_host (true|false) "false"
+    is_online (true|false) "true"
+    battery_level CDATA #IMPLIED
+    join_timestamp CDATA #IMPLIED
+>
+
+<!ELEMENT info_user (nom, email?, age?, device_name?)>
+<!ATTLIST info_user id_user ID #REQUIRED>
+<!ELEMENT nom (#PCDATA)>
+<!ELEMENT email (#PCDATA)>
+<!ELEMENT age (#PCDATA)>
+<!ELEMENT device_name (#PCDATA)>
+
+<!ELEMENT track_list (musique*)>
+<!ATTLIST track_list count CDATA #IMPLIED>
+
+<!ELEMENT musique (titre, artistes, album?, duree?, description?, date_de_sortie?, chemin)>
+<!ATTLIST musique 
+    id_musique ID #REQUIRED
+    ajouter_par IDREF #IMPLIED
+    genre (Rap|Afro|Trap|Pop_Urbain|Amapiano|Drill|Pop|Rock|Jazz|Electronique|Autres) "Autres"
+    format (mp3|flac|aac|ogg|wav|m4a) "mp3"
+    filesize CDATA #IMPLIED
+>
+
+<!ELEMENT titre (#PCDATA)>
+<!ELEMENT artistes (artiste+)>
+<!ELEMENT artiste (#PCDATA)>
+<!ELEMENT album (#PCDATA)>
+<!ELEMENT duree (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT date_de_sortie (#PCDATA)>
+<!ELEMENT chemin (#PCDATA)>
+
+]>

@@ -1,0 +1,11 @@
+﻿{
+  "name": "sharemusic-client",
+  "version": "1.0.0",
+  "description": "Frontend ShareMusic",
+  "scripts": {
+    "start": "live-server src --port=5500"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

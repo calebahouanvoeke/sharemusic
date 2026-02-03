@@ -1,0 +1,20 @@
+﻿{
+  "name": "sharemusic",
+  "version": "1.0.0",
+  "description": "Application de partage musical en réseau local Wi-Fi",
+  "scripts": {
+    "install:all": "npm run install:server && npm run install:client",
+    "install:server": "cd server && npm install",
+    "install:client": "cd client && npm install",
+    "dev": "concurrently --kill-others \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm start",
+    "setup": "npm install && npm run install:all"
+  },
+  "keywords": ["music", "sharing", "wifi"],
+  "author": "Équipe ShareMusic",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
