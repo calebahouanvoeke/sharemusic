@@ -1,9 +1,10 @@
 ﻿const config = {
   server: {
     port: process.env.PORT || 8080,
+    httpPort: process.env.HTTP_PORT || 3001,
     streamingPort: process.env.STREAMING_PORT || 3000
   },
-  
+
   network: {
     serviceName: process.env.SERVICE_NAME || 'ShareMusic',
     mdnsType: process.env.MDNS_TYPE || 'sharemusic',
@@ -11,16 +12,16 @@
     electionTimeout: parseInt(process.env.ELECTION_TIMEOUT) || 3000,
     heartbeatTimeout: parseInt(process.env.HEARTBEAT_TIMEOUT) || 15000
   },
-  
+
   paths: {
     musicDir: process.env.MUSIC_DIR || './music',
     dtdPath: process.env.DTD_PATH || './dtd/sharemusic.dtd'
   },
-  
+
   logging: {
     level: process.env.LOG_LEVEL || 'info'
   },
-  
+
   election: {
     weights: {
       battery: {
