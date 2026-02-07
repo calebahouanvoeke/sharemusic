@@ -8,9 +8,9 @@
   network: {
     serviceName: process.env.SERVICE_NAME || 'ShareMusic',
     mdnsType: process.env.MDNS_TYPE || 'sharemusic',
-    pingInterval: parseInt(process.env.PING_INTERVAL) || 5000,
+    pingInterval: parseInt(process.env.PING_INTERVAL) || 15000, // ✅ 15s au lieu de 5s
     electionTimeout: parseInt(process.env.ELECTION_TIMEOUT) || 3000,
-    heartbeatTimeout: parseInt(process.env.HEARTBEAT_TIMEOUT) || 15000
+    heartbeatTimeout: parseInt(process.env.HEARTBEAT_TIMEOUT) || 45000 // ✅ 45s au lieu de 15s
   },
 
   paths: {

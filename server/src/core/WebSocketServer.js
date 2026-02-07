@@ -16,46 +16,83 @@ class WebSocketServer extends EventEmitter {
   /**
    * Démarrer le serveur WebSocket
    */
-  start() {
-    try {
-      this.wss = new WebSocket.Server({ port: this.port });
-
-      this.wss.on('connection', (ws, req) => {
-        const clientIp = req.socket.remoteAddress;
-        logger.info('WS', `Nouvelle connexion depuis ${clientIp}`);
-
-        // Gérer les messages entrants
-        ws.on('message', (data) => {
-          this.handleMessage(ws, data);
+start() {
+    return new Promise((resolve, reject) => {
+      try {
+        // ✅ MODIFIÉ : Options WebSocket pour mobile
+        this.wss = new WebSocket.Server({ 
+          port: this.port,
+          // ✅ NOUVEAU : Options de compatibilité mobile
+          clientTracking: true,
+          perMessageDeflate: false, // Désactiver la compression (peut causer des problèmes sur mobile)
+          maxPayload: 100 * 1024 * 1024, // 100 MB max
+          // ✅ NOUVEAU : Timeouts plus longs pour mobile
+          handshakeTimeout: 10000, // 10 secondes au lieu de 2
+          backlog: 100
         });
 
-        // Gérer les déconnexions
-        ws.on('close', () => {
-          this.handleDisconnection(ws);
-        });
+        // ✅ NOUVEAU : Augmenter les timeouts des sockets
+        this.wss.on('connection', (ws, req) => {
+          // Configurer les timeouts du socket sous-jacent
+          if (ws._socket) {
+            ws._socket.setTimeout(0); // Pas de timeout
+            ws._socket.setKeepAlive(true, 10000); // Keep-alive toutes les 10s
+            ws._socket.setNoDelay(true); // Désactiver l'algorithme de Nagle
+          }
 
-        // Gérer les erreurs
-        ws.on('error', (error) => {
-          logger.error('WS', 'Erreur WebSocket', error);
-        });
+          const clientIp = req.socket.remoteAddress;
+          logger.info('WS', `Nouvelle connexion depuis ${clientIp}`);
 
-        // Gérer les pongs (réponse au ping WebSocket natif)
-        ws.on('pong', () => {
           ws.isAlive = true;
+          ws.deviceId = null;
+          ws.userName = null;
+
+          // ✅ NOUVEAU : Log détaillé pour debugging mobile
+          ws.on('error', (error) => {
+            logger.error('WS', `Erreur WebSocket (${ws.deviceId || 'unknown'}):`, error);
+          });
+
+          ws.on('close', (code, reason) => {
+            logger.info('WS', `Connexion fermée (${ws.deviceId || 'unknown'}): code=${code}, reason=${reason || 'none'}`);
+            this.handleDisconnection(ws);
+          });
+
+          ws.on('message', (message) => {
+            try {
+              this.handleMessage(ws, message);
+            } catch (err) {
+              logger.error('WS', 'Erreur traitement message:', err);
+            }
+          });
+
+          // ✅ IMPORTANT : Répondre au ping natif du navigateur
+          ws.on('ping', () => {
+            logger.debug('WS', `Ping natif reçu de ${ws.deviceId || 'unknown'}`);
+            ws.pong();
+          });
+
+          ws.on('pong', () => {
+            ws.isAlive = true;
+            logger.debug('WS', `Pong reçu de ${ws.deviceId || 'unknown'}`);
+          });
         });
-      });
 
-      this.wss.on('error', (error) => {
-        logger.error('WS', 'Erreur serveur WebSocket', error);
-      });
+        this.wss.on('error', (error) => {
+          logger.error('WS', 'Erreur serveur WebSocket:', error);
+          reject(error);
+        });
 
-      logger.info('WS', `Serveur WebSocket démarré sur port ${this.port}`);
-    } catch (err) {
-      logger.error('WS', 'Impossible de démarrer le serveur', err);
-      throw err;
-    }
+        this.wss.on('listening', () => {
+          logger.info('WS', `✓ Serveur WebSocket démarré sur le port ${this.port}`);
+          resolve();
+        });
+
+      } catch (err) {
+        logger.error('WS', 'Erreur démarrage serveur WebSocket:', err);
+        reject(err);
+      }
+    });
   }
-
   /**
    * Gérer les messages entrants
    */
