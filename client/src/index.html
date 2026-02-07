@@ -1,19 +1,316 @@
 ﻿<!DOCTYPE html>
 <html lang="fr">
+
+<!DOCTYPE html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ShareMusic</title>
-  <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShareMusic - Partage Musical Local</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+    
+    <!-- ✅✅✅ CONSOLE MOBILE ERUDA - TRÈS IMPORTANT ✅✅✅ -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>
+      eruda.init();
+      console.log('🔧 Eruda activée - Cliquez sur le bouton vert en bas à droite');
+    </script>
+    <!-- ✅✅✅ FIN ERUDA ✅✅✅ -->
+    
+    <!-- Votre script de détection existant -->
+    <script>
+      (function() {
+        console.log('╔═══════════════════════════════════════════════════╗');
+        console.log('║     SHAREMUSIC - DÉTECTION ENVIRONNEMENT          ║');
+        console.log('╚═══════════════════════════════════════════════════╝');
+        
+        const currentHost = window.location.hostname;
+        const isLocal = (currentHost === 'localhost' || 
+                        currentHost === '127.0.0.1' || 
+                        currentHost === '' ||
+                        currentHost === '::1');
+        
+        let backendIp;
+        let deviceType;
+        
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        if (/android/i.test(userAgent)) {
+          deviceType = 'Android';
+        } else if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+          deviceType = 'iPhone/iPad';
+        } else {
+          deviceType = 'PC/Desktop';
+        }
+        
+        if (isLocal) {
+          backendIp = 'localhost';
+          console.log(`📱 Type d'appareil: ${deviceType}`);
+          console.log('💻 Mode: LOCAL (PC avec npm start)');
+          console.log(`→ Backend API: http://localhost:3001`);
+        } else {
+          backendIp = currentHost;
+          console.log(`📱 Type d'appareil: ${deviceType}`);
+          console.log('🌐 Mode: DISTANT (accès via IP)');
+          console.log(`→ IP du serveur: ${currentHost}`);
+          console.log(`→ Backend API: http://${currentHost}:3001`);
+        }
+        
+        localStorage.setItem('sharemusic_backend_ip', backendIp);
+        localStorage.setItem('sharemusic_device_type', deviceType);
+        localStorage.setItem('sharemusic_access_mode', isLocal ? 'local' : 'remote');
+        
+        console.log('✅ Configuration enregistrée');
+        console.log('');
+      })();
+    </script>
 </head>
 <body>
-  <div id="app">
-    <h1>ShareMusic</h1>
-    <p>Interface à développer par Module 9</p>
-  </div>
-  
-  <script src="js/NetworkClient.js"></script>
-  <script src="js/AudioPlayer.js"></script>
-  <script src="js/UIController.js"></script>
+    <div id="loginScreen" class="screen">
+        <div class="login-container">
+            <div class="logo">
+                <i class="fa-solid fa-music"></i>
+            </div>
+            <h1>ShareMusic</h1>
+            <p class="subtitle">Partagez votre musique sur le réseau local</p>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="userName">Votre pseudo</label>
+                    <input type="text" id="userName" name="userName" placeholder="Entrez votre pseudo" required
+                        autocomplete="off" autofocus>
+                </div>
+
+                <button type="submit" class="btn-primary">
+                    <span>Se connecter</span>
+                    <span class="btn-icon"><i class="fa-solid fa-arrow-right-to-bracket"></i></span>
+                </button>
+            </form>
+
+            <div class="info-box">
+                <p><i class="fa-solid fa-lightbulb"></i> Votre pseudo sera visible par les autres utilisateurs du réseau</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainScreen" class="screen hidden">
+        
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-small"><i class="fa-solid fa-music"></i></div>
+                <h2>ShareMusic</h2>
+
+                <div class="header-info">
+                    <div class="user-info">
+                        <span class="user-name" id="currentUserName">-</span>
+                        <span class="connection-status" id="connectionStatus">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Déconnecté</span>
+                        </span>
+                    </div>
+
+                    <div class="network-info">
+                        <span id="usersCount"><i class="fa-solid fa-users"></i> 0</span>
+                        <span class="separator">•</span>
+                        <span id="tracksCount"><i class="fa-solid fa-compact-disc"></i> 0</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-wrapper" style="position: relative;">
+                    <i class="fa-solid fa-magnifying-glass search-icon-overlay"></i>
+                    <input type="text" id="searchInput" placeholder="Rechercher un titre, un artiste, un album..."
+                        class="search-input">
+                </div>
+
+                <div class="action-bar">
+                    <button class="btn-primary btn-large" onclick="uiController.openLibraryModal()">
+                        <span><i class="fa-solid fa-circle-plus"></i></span>
+                        <span>Ajouter de la musique</span>
+                    </button>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <i class="fa-solid fa-music filter-icon"></i>
+                        <select id="genreFilter" class="filter-select">
+                            <option value="">Tous les genres</option>
+                            <option value="Rap">Rap</option>
+                            <option value="Afro">Afro</option>
+                            <option value="Trap">Trap</option>
+                            <option value="Pop">Pop</option>
+                            <option value="Rock">Rock</option>
+                            <option value="Jazz">Jazz</option>
+                            <option value="Electronique">Électronique</option>
+                            <option value="RnB">RnB</option>
+                            <option value="Blues">Blues</option>
+                            <option value="Reggae">Reggae</option>
+                            <option value="Classical">Classique</option>
+                            <option value="Metal">Metal</option>
+                            <option value="Autres">Autres</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <i class="fa-solid fa-user filter-icon"></i>
+                        <select id="userFilter" class="filter-select">
+                            <option value="">Tous les utilisateurs</option>
+                        </select>
+                    </div>
+
+                    <button id="clearFilters" class="btn-secondary">
+                        <i class="fa-solid fa-filter-circle-xmark"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div id="tracksGrid" class="tracks-grid">
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fa-solid fa-wifi"></i></div>
+                    <h3>Aucun morceau disponible</h3>
+                    <p>En attente de connexion au réseau...</p>
+                </div>
+            </div>
+        </main>
+
+        <div id="libraryModal" class="modal hidden">
+            <div class="modal-overlay" onclick="uiController.closeLibraryModal()"></div>
+            <div class="modal-content library-modal">
+                <div class="modal-header">
+                    <h2><i class="fa-solid fa-book-open"></i> Ma Bibliothèque</h2>
+                    <button class="modal-close" onclick="uiController.closeLibraryModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="library-stats">
+                    <div class="stat-item">
+                        <span class="stat-icon"><i class="fa-solid fa-music"></i></span>
+                        <div class="stat-details">
+                            <span class="stat-label">Morceaux</span>
+                            <span class="stat-value" id="libraryTrackCount">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-icon"><i class="fa-solid fa-hard-drive"></i></span>
+                        <div class="stat-details">
+                            <span class="stat-label">Taille totale</span>
+                            <span class="stat-value" id="libraryTotalSize">0 MB</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="library-actions">
+                    <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                        <span><i class="fa-solid fa-folder-plus"></i></span>
+                        <span>Importer des fichiers</span>
+                    </button>
+                    <input type="file" id="fileInput" accept="audio/*" multiple style="display: none;"
+                        onchange="uiController.handleFileSelect(event)">
+
+                    <button class="btn-secondary" onclick="uiController.clearLibrary()">
+                        <span><i class="fa-solid fa-trash-can"></i></span>
+                        <span>Tout supprimer</span>
+                    </button>
+
+                    
+                </div>
+
+                <div class="library-list">
+                    <div class="library-list-header">
+                        <span><i class="fa-solid fa-font"></i> Titre</span>
+                        <span><i class="fa-solid fa-microphone-lines"></i> Artiste</span>
+                        <span><i class="fa-solid fa-compact-disc"></i> Album</span>
+                        <span><i class="fa-regular fa-clock"></i> Durée</span>
+                        <span>Format</span>
+                        <span>Actions</span>
+                    </div>
+                    <div id="libraryTrackList" class="library-track-list">
+                        <div class="empty-library">
+                            <div class="empty-icon"><i class="fa-solid fa-record-vinyl"></i></div>
+                            <p>Votre bibliothèque est vide</p>
+                            <p class="empty-subtitle">Ajoutez des fichiers pour les partager sur le réseau</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="fab-button" onclick="uiController.openLibraryModal()" title="Gérer ma musique">
+            <i class="fa-solid fa-layer-group"></i>
+        </button>
+
+        <div class="player-container">
+            <div class="player">
+                <div class="player-track-info">
+                    <div class="player-cover" id="playerCover">
+                        <span class="cover-icon"><i class="fa-solid fa-music"></i></span>
+                    </div>
+                    <div class="player-details">
+                        <div class="player-title" id="playerTitle">Aucun morceau</div>
+                        <div class="player-artist" id="playerArtist">-</div>
+                    </div>
+                </div>
+
+                <div class="player-controls">
+                    <button class="control-btn" id="btnPrevious" disabled title="Précédent">
+                        <i class="fa-solid fa-backward-step"></i>
+                    </button>
+
+                    <button class="control-btn control-btn-play" id="btnPlayPause" disabled title="Lecture/Pause">
+                        <i class="fa-solid fa-play play-icon"></i>
+                        <i class="fa-solid fa-pause pause-icon hidden"></i>
+                    </button>
+
+                    <button class="control-btn" id="btnNext" disabled title="Suivant">
+                        <i class="fa-solid fa-forward-step"></i>
+                    </button>
+                </div>
+
+                <div class="player-progress-section">
+                    <div class="player-time" id="playerCurrentTime">0:00</div>
+                    <div class="player-progress" id="playerProgress">
+                        <div class="player-progress-bar">
+                            <div class="player-progress-fill" id="playerProgressFill"></div>
+                        </div>
+                    </div>
+                    <div class="player-time" id="playerDuration">0:00</div>
+                </div>
+
+                <div class="player-volume">
+                    <button class="volume-btn" id="btnMute" title="Muet">
+                        <i class="fa-solid fa-volume-high volume-icon"></i>
+                        <i class="fa-solid fa-volume-xmark mute-icon hidden"></i>
+                    </button>
+                    <div class="volume-slider" id="volumeSlider">
+                        <div class="volume-fill" id="volumeFill"></div>
+                    </div>
+                    <div class="volume-value" id="volumeValue">80%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="spinner"></div>
+            <p>Connexion au réseau...</p>
+        </div>
+    </div>
+
+    <script src="js/NetworkClient.js"></script>
+    <script src="js/AudioPlayer.js"></script>
+    <script src="js/MusicLibraryManager.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/UIController.js"></script>
 </body>
+
 </html>
